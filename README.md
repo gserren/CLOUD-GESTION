@@ -44,6 +44,9 @@ con una base vacía. Una base que recibió ejemplos muestra siempre el aviso DEM
 - Vista imprimible de reportes; guardar PDF mediante la impresión del navegador.
 - Búsqueda, filtros, indicadores y registro de actividad.
 - Persistencia SQLite, comando de respaldo y pruebas automatizadas.
+- Archivo privado de originales, versiones e importación local validada con SHA-256.
+- Descarga exclusiva de administración y asociación con cliente, instalación y orden.
+- Respaldo completo de base y archivos, con prueba de restauración.
 
 Publicar al cliente significa habilitar la revisión en esta aplicación. No envía
 correos, no otorga permisos en Drive y no publica archivos en otros sistemas.
@@ -140,7 +143,15 @@ separación multitenant, alta concurrencia ni acuerdos de disponibilidad.
 
 ## Pendiente
 
-Integración real con Cloud Gestión, importación de PDFs de servicio, fotos y
-adjuntos, catálogo de equipos/checklists, recurrencias, agenda por cuadrilla,
+Conexión directa con Cloud Gestión, conciliación de su inventario completo,
+extracción estructurada de PDFs, fotos y adjuntos operativos, catálogo de equipos/checklists, recurrencias, agenda por cuadrilla,
 notificaciones, facturación, stock y funcionamiento móvil sin conexión.
 Ver `docs/SIGUIENTE_TAREA.md` para el próximo incremento propuesto.
+
+## Migración de documentos
+
+La versión 0.2 incorpora originales de exportaciones autorizadas. Ver
+[docs/MIGRACION_CG.md](docs/MIGRACION_CG.md) para el formato de importación,
+la conservación de versiones, los límites y el criterio de cierre. Los datos
+privados nunca se distribuyen en este repositorio. El comando de respaldo
+completo es `python manage.py backup-archive /ruta/privada/respaldo.zip`.

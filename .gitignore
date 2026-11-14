@@ -10,4 +10,8 @@ instance/
 coverage*
 test-results/
 .DS_Store
+private/
+exports/
+backups/
+*.zip
 

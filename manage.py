@@ -2,6 +2,7 @@
 """Operaciones locales. Las contraseñas nunca se aceptan como argumentos."""
 import argparse
 import getpass
+import json
 import os
 import re
 import sqlite3
@@ -10,6 +11,7 @@ from pathlib import Path
 from backend.app import create_app
 from backend.auth import password_hash
 from backend.db import get_db
+from backend.documents import import_manifest, verify_archive, backup_archive
 
 
 def main():
@@ -26,11 +28,29 @@ def main():
     run.add_argument('--port',type=int,default=8000)
     backup = sub.add_parser('backup',help='Copia consistente de SQLite, incluyendo WAL')
     backup.add_argument('destination')
+    migrate = sub.add_parser('import-documents',help='Validar e importar originales de una exportación local')
+    migrate.add_argument('manifest')
+    migrate.add_argument('--commit',action='store_true',help='Copiar originales después de validar todo el lote')
+    sub.add_parser('verify-documents',help='Recalcular SHA-256 de todos los originales archivados')
+    full_backup = sub.add_parser('backup-archive',help='Respaldar base y originales en un ZIP privado')
+    full_backup.add_argument('destination')
     args = parser.parse_args()
     app = create_app()
     with app.app_context():
         db = get_db()
-        if args.command in ('init-admin','reset-password'):
+        if args.command == 'import-documents':
+            result = import_manifest(args.manifest, commit=args.commit)
+            print(json.dumps(result,ensure_ascii=False,indent=2))
+            if result['errors']:
+                raise SystemExit(1)
+        elif args.command == 'verify-documents':
+            result = verify_archive()
+            print(json.dumps(result,ensure_ascii=False,indent=2))
+            if result['errors']:
+                raise SystemExit(1)
+        elif args.command == 'backup-archive':
+            print(json.dumps(backup_archive(args.destination),ensure_ascii=False,indent=2))
+        elif args.command in ('init-admin','reset-password'):
             if args.command == 'init-admin' and db.execute('SELECT 1 FROM users LIMIT 1').fetchone():
                 parser.error('Ya hay usuarios. Ingresá con el administrador existente o usá reset-password.')
             if not re.fullmatch(r'[A-Za-z0-9_.@-]{3,80}',args.username):

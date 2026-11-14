@@ -6,10 +6,11 @@ import secrets
 import sqlite3
 from datetime import date
 from pathlib import Path
-from flask import Flask, g, jsonify, render_template, request, send_from_directory
+from flask import Flask, g, jsonify, render_template, request, send_file, send_from_directory
 from werkzeug.exceptions import HTTPException
 from werkzeug.security import check_password_hash
 from . import auth
+from . import documents
 from .db import audit, close_db, get_db, init_db, one, rows
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -123,6 +124,8 @@ def create_app(config=None):
     )
     if config:
         app.config.update(config)
+    app.config.setdefault('DOCUMENT_ROOT', os.environ.get('QTECH_DOCUMENT_ROOT',
+        str(Path(app.config['DATABASE']).parent / 'documents')))
     Path(app.config['DATABASE']).parent.mkdir(parents=True, exist_ok=True)
     app.teardown_appcontext(close_db)
     with app.app_context():
@@ -165,7 +168,7 @@ def create_app(config=None):
 
     @app.get('/api/health')
     def health():
-        return jsonify(status='ok', version='0.1.0')
+        return jsonify(status='ok', version='0.2.0')
 
     @app.get('/api/session')
     def current_session():
@@ -239,6 +242,7 @@ def create_app(config=None):
             result['users'] = rows('SELECT id,username,name,role,client_id,active FROM users ' + user_where,
                                    () if not user_where else (g.user['id'],))
         result['reports'] = reports
+        result['documents'] = rows('SELECT * FROM documents ORDER BY id DESC') if g.user['role'] == 'admin' and client_id is None else []
         result['audit'] = rows('SELECT a.*,u.name FROM audit a LEFT JOIN users u ON u.id=a.user_id ORDER BY a.id DESC LIMIT 30') if g.user['role'] == 'admin' and client_id is None else []
         return jsonify(result)
 
@@ -417,5 +421,37 @@ def create_app(config=None):
     def report_html(ident):
         report = report_access(ident)
         return render_template('report.html',report=report,s=report['snapshot'],client_view=effective_client() is not None)
+
+    @app.get('/api/documents/<int:ident>/download')
+    @auth.require('admin')
+    def download_document(ident):
+        if effective_client() is not None:
+            raise Problem('Original no disponible en vista cliente.', 404)
+        doc = exists('documents', ident)
+        path = documents.blob_path(doc['sha256'])
+        if not path.is_file():
+            raise Problem('Original no disponible; verificá el archivo privado.', 503)
+        if path.stat().st_size != doc['byte_size'] or documents.file_hash(path) != doc['sha256']:
+            raise Problem('Falló la verificación de integridad del original.', 503)
+        audit('downloaded_original', 'documents', ident)
+        get_db().commit()
+        return send_file(path, as_attachment=True, download_name=doc['original_name'],
+                         mimetype='application/octet-stream', conditional=False, etag=False)
+
+    @app.patch('/api/documents/<int:ident>/association')
+    @auth.require('admin')
+    def associate_document(ident):
+        if effective_client() is not None:
+            raise Problem('La vista cliente es de solo lectura.', 403)
+        exists('documents', ident)
+        d = payload()
+        if set(d) - {'client_id','site_id','order_id'}:
+            raise Problem('Solo se pueden modificar las asociaciones del original.')
+        ids = [integer(d.get(k), nullable=True) for k in ('client_id','site_id','order_id')]
+        cid, sid, oid = documents.association(*ids)
+        get_db().execute('UPDATE documents SET client_id=?,site_id=?,order_id=? WHERE id=?', (cid,sid,oid,ident))
+        audit('associated_original', 'documents', ident)
+        get_db().commit()
+        return jsonify(ok=True)
 
     return app

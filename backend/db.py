@@ -21,6 +21,12 @@ def close_db(_error=None):
 def init_db():
     db = get_db()
     db.executescript(Path(__file__).with_name('schema.sql').read_text())
+    version = int(db.execute("SELECT value FROM settings WHERE key='schema_version'").fetchone()[0])
+    if version > 2:
+        raise RuntimeError('La base pertenece a una versión posterior. Actualizá la aplicación.')
+    if version < 2:
+        migration = Path(__file__).parent / 'migrations' / '002_documents.sql'
+        db.executescript('BEGIN IMMEDIATE;\n' + migration.read_text() + '\nCOMMIT;')
     db.commit()
 
 
