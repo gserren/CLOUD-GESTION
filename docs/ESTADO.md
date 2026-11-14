@@ -33,3 +33,8 @@ y respaldo de base más originales. Esquema 2 con migración conservadora.
 Se verificaron 29 pruebas automatizadas y sintaxis JavaScript. La prueba visual
 en navegador sigue pendiente por la restricción del entorno, como se detalla
 en docs/VALIDACION.md. Ver docs/MIGRACION_CG.md antes de continuar.
+
+El panel de originales distingue archivos con contenido distinto de referencias
+de origen: una copia idéntica en varios respaldos conserva su procedencia sin
+duplicar bytes. La recuperación privada puede combinar Drive y Gmail sin
+reenviar correos. Sus cantidades y clientes no se registran en este repositorio.
