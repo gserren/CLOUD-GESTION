@@ -1,5 +1,9 @@
 # Migración de documentos de Cloud Gestión
 
+Para la copia de la base de datos y las actualizaciones conservadoras, seguir
+[ACTUALIZACION_CG.md](ACTUALIZACION_CG.md). Conservar los originales en origen
+y todas las versiones ya copiadas mientras se completa la transición.
+
 ## Alcance obligatorio
 
 Conservar **todos los documentos creados en CG real** y sus adjuntos: partes,
@@ -119,3 +123,4 @@ demuestran completitud. Registrar faltantes y errores en un informe privado.
 Pendiente: acceso a la fuente CG, exportación completa, conversión de relaciones
 con equipos y documentos vinculados a campos operativos, integración automática,
 validación visual en navegador y alojamiento de producción.
+
